@@ -9,46 +9,31 @@
 #include "ch.h"
 #include "hal.h"
 
+// default wait implementation cannot be called within interrupt
+// this method seems to be more accurate than GPT timers
 #undef wait_us
 #define wait_us(x) chSysPolledDelayX(US2RTC(STM32_SYSCLK, x))
 
-void interrupt_handler(EXTDriver *extp, expchannel_t channel);
-
-// static inline uint32_t ExtModePort(ioline_t pin) {
-//     if (PAL_PORT(pin) == GPIOA) return EXT_MODE_GPIOA;
-//     if (PAL_PORT(pin) == GPIOB) return EXT_MODE_GPIOB;
-//     if (PAL_PORT(pin) == GPIOC) return EXT_MODE_GPIOC;
-//     if (PAL_PORT(pin) == GPIOD) return EXT_MODE_GPIOD;
-//     if (PAL_PORT(pin) == GPIOE) return EXT_MODE_GPIOE;
-//     if (PAL_PORT(pin) == GPIOF) return EXT_MODE_GPIOF;
-//     return 0;
-// }
-
-// convert GPIOB to EXT_MODE_GPIOB
+// helper to convert GPIOB to EXT_MODE_GPIOB
 #define ExtModePort(pin) (((uint32_t)PAL_PORT(pin) & 0x0000FF00U) >> 6)
 
 // Serial pulse period in microseconds. Its probably a bad idea to lower this value.
 #define SERIAL_DELAY 48
 #define SERIAL_FUDGE 2
 
+inline static void serial_delay(void) { wait_us(SERIAL_DELAY); }
+inline static void serial_delay_half(void) { wait_us(SERIAL_DELAY / 2); }
+inline static void serial_delay_blip(void) { wait_us(1); }
+inline static void serial_output(void) { setPinOutput(SOFT_SERIAL_PIN); }
+inline static void serial_input(void) { setPinInputHigh(SOFT_SERIAL_PIN); }
+inline static bool serial_read_pin(void) { return !!readPin(SOFT_SERIAL_PIN); }
+inline static void serial_low(void) { writePinLow(SOFT_SERIAL_PIN); }
+inline static void serial_high(void) { writePinHigh(SOFT_SERIAL_PIN); }
+
+void interrupt_handler(EXTDriver *extp, expchannel_t channel);
+
 static SSTD_t *Transaction_table      = NULL;
 static uint8_t Transaction_table_size = 0;
-
-inline static void serial_delay(void) { wait_us(SERIAL_DELAY); }
-
-inline static void serial_delay_half(void) { wait_us(SERIAL_DELAY / 2); }
-
-inline static void serial_delay_blip(void) { wait_us(1); }
-
-inline static void serial_output(void) { setPinOutput(SOFT_SERIAL_PIN); }
-
-inline static void serial_input(void) { setPinInputHigh(SOFT_SERIAL_PIN); }
-
-inline static uint8_t serial_read_pin(void) { return !!readPin(SOFT_SERIAL_PIN); }
-
-inline static void serial_low(void) { writePinLow(SOFT_SERIAL_PIN); }
-
-inline static void serial_high(void) { writePinHigh(SOFT_SERIAL_PIN); }
 
 void soft_serial_initiator_init(SSTD_t *sstd_table, int sstd_table_size) {
     Transaction_table      = sstd_table;
@@ -100,9 +85,7 @@ static uint8_t serial_read_byte(void) {
         byte = (byte << 1) | serial_read_pin();
         wait_us(SERIAL_DELAY);
     }
-    // writePinHigh(DEBUG_PIN);
-    // wait_us(1);
-    // writePinLow(DEBUG_PIN);
+
     return byte;
 }
 
@@ -123,15 +106,9 @@ static void serial_write_byte(uint8_t data) {
 
 // interrupt handle to be used by the slave device
 void interrupt_handler(EXTDriver *extp, expchannel_t channel) {
-    // static int s_state = 0;
-    // s_state            = !s_state;
-    // writePin(LED_PIN, s_state);
-    // wait_ms(100);
-
     chSysLockFromISR();
     extChannelDisableI(&EXTD1, PAL_PAD(SOFT_SERIAL_PIN));
 
-    // void interrupt_handler(void) {
     sync_send();
 
     uint8_t checksum = 0;
@@ -146,19 +123,23 @@ void interrupt_handler(EXTDriver *extp, expchannel_t channel) {
     // wait for the sync to finish sending
     serial_delay();
 
-    serial_input();  // end transaction
+    // end transaction
+    serial_input();
 
-    // writePin(LED_PIN, s_state);
     extChannelEnableI(&EXTD1, PAL_PAD(SOFT_SERIAL_PIN));
     chSysUnlockFromISR();
 }
 
-// Copies the serial_slave_buffer to the master and sends the
-// serial_master_buffer to the slave.
+/////////
+//  start transaction by initiator
+//
+// int  soft_serial_transaction(int sstd_index)
 //
 // Returns:
-// 0 => no error
-// 1 => slave did not respond
+//    TRANSACTION_END
+//    TRANSACTION_NO_RESPONSE
+//    TRANSACTION_DATA_ERROR
+// this code is very time dependent, so we need to disable interrupts
 int soft_serial_transaction(void) {
     // this code is very time dependent, so we need to disable interrupts
     chSysLock();
@@ -182,7 +163,6 @@ int soft_serial_transaction(void) {
 
     // if the slave is present syncronize with it
     sync_recv();
-    // serial_delay_half();
 
     uint8_t checksum_computed = 0;
     // receive data from the slave
@@ -194,6 +174,7 @@ int soft_serial_transaction(void) {
     }
     checksum_computed ^= 7;
     uint8_t checksum_received = serial_read_byte();
+
     sync_recv();
 
     if ((checksum_computed) != (checksum_received)) {
@@ -205,16 +186,6 @@ int soft_serial_transaction(void) {
         chSysUnlock();
         return TRANSACTION_DATA_ERROR;
     }
-
-    // uint8_t checksum = 0;
-    // // send data to the slave
-    // for (int i = 0; i < SERIAL_MASTER_BUFFER_LENGTH; ++i) {
-    //     serial_write_byte(serial_master_buffer[i]);
-    //     sync_recv();
-    //     checksum += serial_master_buffer[i];
-    // }
-    // serial_write_byte(checksum);
-    // sync_recv();
 
     // always, release the line when not in use
     serial_output();
