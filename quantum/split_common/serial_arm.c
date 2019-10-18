@@ -18,7 +18,7 @@
 #define ExtModePort(pin) (((uint32_t)PAL_PORT(pin) & 0x0000FF00U) >> 6)
 
 // Serial pulse period in microseconds. Its probably a bad idea to lower this value.
-#define SERIAL_DELAY 48
+#define SERIAL_DELAY 64
 #define SERIAL_FUDGE 2
 
 inline static void serial_delay(void) { wait_us(SERIAL_DELAY); }
@@ -140,7 +140,12 @@ void interrupt_handler(EXTDriver *extp, expchannel_t channel) {
 //    TRANSACTION_NO_RESPONSE
 //    TRANSACTION_DATA_ERROR
 // this code is very time dependent, so we need to disable interrupts
+#ifndef SERIAL_USE_MULTI_TRANSACTION
 int soft_serial_transaction(void) {
+#else
+int soft_serial_transaction(int sstd_index) {
+    (void)sstd_index;
+#endif
     // this code is very time dependent, so we need to disable interrupts
     chSysLock();
 
