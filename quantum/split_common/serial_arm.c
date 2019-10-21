@@ -18,11 +18,10 @@
 #define ExtModePort(pin) (((uint32_t)PAL_PORT(pin) & 0x0000FF00U) >> 6)
 
 // Serial pulse period in microseconds. Its probably a bad idea to lower this value.
-#define SERIAL_DELAY 64
-#define SERIAL_FUDGE 2
+#define SERIAL_DELAY 32
 
 inline static void serial_delay(void) { wait_us(SERIAL_DELAY); }
-inline static void serial_delay_half(void) { wait_us(SERIAL_DELAY / 2); }
+inline static void serial_delay_half(void) { wait_us(SERIAL_DELAY / 4); }
 inline static void serial_delay_blip(void) { wait_us(1); }
 inline static void serial_output(void) { setPinOutput(SOFT_SERIAL_PIN); }
 inline static void serial_input(void) { setPinInputHigh(SOFT_SERIAL_PIN); }
@@ -100,7 +99,6 @@ static void serial_write_byte(uint8_t data) {
             serial_low();
         }
         serial_delay();
-        wait_us(SERIAL_FUDGE);
     }
 }
 
