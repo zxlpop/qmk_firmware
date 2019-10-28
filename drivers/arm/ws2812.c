@@ -3,8 +3,8 @@
 #include "ch.h"
 #include "hal.h"
 
-/* adapted from
-https://github.com/bigjosh/SimpleNeoPixelDemo/blob/master/SimpleNeopixelDemo/SimpleNeopixelDemo.ino
+/* Adapted from
+https://github.com/bigjosh/SimpleNeoPixelDemo/
 */
 
 #ifndef CYCLES_PER_INSTRUCTION
@@ -45,6 +45,7 @@ https://github.com/bigjosh/SimpleNeoPixelDemo/blob/master/SimpleNeopixelDemo/Sim
 #define RES 7000  // Width of the low gap between bits to cause a frame to latch
 
 void sendByte(uint8_t byte) {
+    // WS2812 protocol wants most significant bits first
     for (unsigned char bit = 0; bit < 8; bit++) {
         bool is_one = byte & (1 << (7));
         if (is_one) {
