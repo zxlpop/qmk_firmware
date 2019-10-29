@@ -8,7 +8,7 @@ https://github.com/bigjosh/SimpleNeoPixelDemo/
 */
 
 #ifndef CYCLES_PER_INSTRUCTION
-#    if defined(STM32F3XX) || defined(STM32F3xx)
+#    if defined(STM32F1XX) || defined(STM32F1xx) || defined(STM32F0XX) || defined(STM32F0xx) || defined(STM32F3XX) || defined(STM32F3xx)
 #        define CYCLES_PER_INSTRUCTION 0.35
 #    else
 #        error("CYCLES_PER_INSTRUCTION configuration required")
