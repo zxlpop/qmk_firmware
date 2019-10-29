@@ -42,7 +42,7 @@
 void sendByte(uint8_t byte) {
     // WS2812 protocol wants most significant bits first
     for (unsigned char bit = 0; bit < 8; bit++) {
-        bool is_one = byte & (1 << (7));
+        bool is_one = byte & (1 << (7 - bit));
         if (is_one) {
             // 1
             writePinHigh(RGB_DI_PIN);
@@ -56,7 +56,6 @@ void sendByte(uint8_t byte) {
             writePinLow(RGB_DI_PIN);
             wait_ns(T0L);
         }
-        byte <<= 1;
     }
 }
 
