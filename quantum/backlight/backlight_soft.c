@@ -20,6 +20,7 @@
         { BACKLIGHT_PIN }
 #endif
 
+static uint8_t s_level = 0;
 static const pin_t backlight_pins[] = BACKLIGHT_PIN_INIT;
 #define BACKLIGHT_LED_COUNT (sizeof(backlight_pins) / sizeof(pin_t))
 
@@ -53,7 +54,7 @@ void backlight_init_ports(void) {
 void backlight_task(void) {
     static uint8_t backlight_tick = 0;
 
-    if ((0xFFFF >> (get_backlight_level() * ((BACKLIGHT_LEVELS + 1) / 2))) & (1 << backlight_tick)) {
+    if ((0xFFFF >> (s_level * ((BACKLIGHT_LEVELS + 1) / 2))) & (1 << backlight_tick)) {
         FOR_EACH_LED(backlight_on(backlight_pin);)
     } else {
         FOR_EACH_LED(backlight_off(backlight_pin);)
@@ -62,5 +63,5 @@ void backlight_task(void) {
 }
 
 void backlight_set(uint8_t level) {
-    // noop as backlight_task uses get_backlight_level()
+   s_level = level;
 }
