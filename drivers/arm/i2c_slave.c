@@ -82,17 +82,17 @@ void slave_incoming_message_process(I2CDriver * i2cp) {
 
     // Hack v1 - sniff the requested offset and bodge a mapping to expected size
     //           this incorrectly couples i2c_slave to split transport
-    // uint16_t length = 0;
-    // if(buffer_address == 0) {
-    //   #define ROWS_PER_HAND (MATRIX_ROWS / 2)
-    //   //matrix_row_t smatrix[ROWS_PER_HAND];
-    //   //length = sizeof(smatrix);
-    //   length = sizeof(matrix_row_t) * ROWS_PER_HAND;
-    // }
+    uint16_t length = 0;
+    if(buffer_address == 0) {
+      #define ROWS_PER_HAND (MATRIX_ROWS / 2)
+      //matrix_row_t smatrix[ROWS_PER_HAND];
+      //length = sizeof(smatrix);
+      length = sizeof(matrix_row_t) * ROWS_PER_HAND;
+    }
 
     // Hack v2 - very inefficiently just return the rest of the buffer
     //           ARM i2c_master seems to be happy enough getting extra data...
-    uint16_t length = sizeof(i2c_slave_reg) - (buffer_address * sizeof(i2c_slave_reg[0]));
+    //uint16_t length = sizeof(i2c_slave_reg) - (buffer_address * sizeof(i2c_slave_reg[0]));
 
     dprintf("i2c slave read len:%d\n", length);
 
