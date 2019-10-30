@@ -8,7 +8,6 @@ WS2812_DRIVER = bitbang
 ifneq ($(strip $(BACKLIGHT_ENABLE)), no)
 	BACKLIGHT_ENABLE = software
 endif
-BACKLIGHT_ENABLE = no
 
 # The rest of these settings shouldn't change
 
