@@ -101,7 +101,8 @@ i2c_status_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, const uint8_t* data,
     }
     complete_packet[0] = regaddr;
 
-    msg_t status = i2cMasterTransmitTimeout(&I2C_DRIVER, (i2c_address >> 1), complete_packet, length + 1, 0, 0, MS2ST(timeout));
+    uint8_t temp = 0;
+    msg_t status = i2cMasterTransmitTimeout(&I2C_DRIVER, (i2c_address >> 1), complete_packet, length + 1, &temp, sizeof(temp), MS2ST(timeout));
     return chibios_to_qmk(&status);
 }
 
