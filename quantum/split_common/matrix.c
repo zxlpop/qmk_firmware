@@ -333,6 +333,9 @@ uint8_t matrix_scan(void) {
 #ifdef ENCODER_ENABLE
         encoder_read();
 #endif
+#ifdef BACKLIGHT_ENABLE
+        backlight_task();
+#endif
         matrix_slave_scan_user();
     }
 
